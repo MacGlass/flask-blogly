@@ -1,9 +1,9 @@
 """Blogly application."""
 
 from flask import Flask, request, redirect, render_template, flash
-from models import db, connect_db
+from models import db, connect_db, User, Post
 from flask_debugtoolbar import DebugToolbarExtension
-from models import User
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///blogly'
@@ -34,16 +34,14 @@ def load_users():
 @app.route("/users/new", methods=["GET", "POST"])
 def create_user():
 
-    if request.method == 'GET': 
+    if request.method == 'GET':
         return render_template("createUser.html")
- 
+
     first_name = request.form['first']
     last_name = request.form['last']
     image = request.form['image']
     if image == '':
         image = None
-
-    print(first_name, last_name, image)
 
     new_user = User(first_name=first_name,
                     last_name=last_name,
@@ -51,8 +49,6 @@ def create_user():
 
     db.session.add(new_user)
     db.session.commit()
-
-    user_id = User.id
 
     return redirect("/users")
 
@@ -66,8 +62,13 @@ def view_user(id):
     image = a.image_url
     id = a.id
 
+    try:
+        all_posts = Post.query.filter_by(user_id=id).all()
+    except:
+        all_posts = None
+
     return render_template("profile.html", first=first,
-                           last=last, image=image, id=id)
+                           last=last, image=image, id=id, posts=all_posts)
 
 
 @app.route("/users/<id>/delete", methods=["POST"])
@@ -100,3 +101,64 @@ def edit_user(id):
     db.session.commit()
 
     return redirect(f"/users/{id}")
+
+
+# ADDING A NEW POST
+@app.route("/users/<id>/posts/new", methods=["GET", "POST"])
+def create_post(id):
+
+    user = User.query.get(id)
+
+    if request.method == 'GET':
+        return render_template("postform.html", user=user)
+
+    title = request.form['title']
+    content = request.form['content']
+    x = datetime.now()
+
+    new_post = Post(title=title,
+                    content=content,
+                    created_at=x,
+                    user_id=user.id)
+
+    db.session.add(new_post)
+    db.session.commit()
+
+    return redirect(f"/users/{id}")
+
+#VIEWING A POST PAGE
+@app.route("/posts/<postId>")
+def view_post(postId):
+    post = Post.query.get(postId)
+
+    return render_template("viewpost.html", post=post, postId=postId)
+
+#EDIT POST
+@app.route("/users/posts/<postId>/edit", methods=["GET", "POST"])
+def edit_post(postId):
+    post = Post.query.get(postId)
+
+    if request.method == 'GET':
+        return render_template("editpost.html", post=post)
+
+    edit_title = request.form['title']
+    edit_content = request.form['content']
+
+    if post.title != edit_title:
+        post.title = edit_title
+    if post.content != edit_content:
+        post.content = edit_content
+
+    db.session.commit()
+
+    return redirect(f"/posts/{postId}")
+
+#DELETE POST
+@app.route("/posts/<postId>/delete", methods=["POST"])
+def delete_post(postId):
+    post = Post.query.get(postId)
+    db.session.delete(post)
+    flash("Post Successfully Deleted!")
+    db.session.commit()
+
+    return redirect(f"/users/{post.user_id}")
