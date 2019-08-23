@@ -11,6 +11,10 @@
   Title: <input name="title"><br>
   <br>Content: <textarea name="content" placeholder="Enter text here..."></textarea><br>
 
+  {% for tag in tags %}
+    <input type="checkbox" name='checkbox' value={{tag.name}}> {{tag.name}}
+  {% endfor %}
+
  <br><button type="submit" >Add</button>
 </form>
 
