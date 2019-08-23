@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+ {% block title %} {{post.title}} {% endblock %}
+
+ {% block content %} 
+
+ {{post.content}}
+ <a href='/users/posts/{{postId}}/edit'>
+  <button> Edit Post</button>
+ </a>
+ 
+ <form action='/posts/{{postId}}/delete' method="POST">
+  <button> Delete Post</button>
+ </form>
+
+ {% endblock %}

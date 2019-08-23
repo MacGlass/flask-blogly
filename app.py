@@ -1,7 +1,7 @@
 """Blogly application."""
 
 from flask import Flask, request, redirect, render_template, flash
-from models import db, connect_db, User, Post
+from models import db, connect_db, User, Post, Tag, PostTag
 from flask_debugtoolbar import DebugToolbarExtension
 from datetime import datetime
 
@@ -108,12 +108,15 @@ def edit_user(id):
 def create_post(id):
 
     user = User.query.get(id)
+    tags = Tag.query.all()
 
     if request.method == 'GET':
-        return render_template("postform.html", user=user)
+        return render_template("postform.html", user=user, tags=tags)
 
     title = request.form['title']
     content = request.form['content']
+    tagstrings = request.form.getlist('checkbox')
+
     x = datetime.now()
 
     new_post = Post(title=title,
@@ -124,16 +127,27 @@ def create_post(id):
     db.session.add(new_post)
     db.session.commit()
 
+    post = Post.query.filter_by(title=title).first()
+
+    for tagstring in tagstrings:
+        for tag in tags:
+            if tagstring == tag.name:
+                new_TagPost = PostTag(tag_id=tag.id,
+                                      post_id=post.id)
+                db.session.add(new_TagPost)
+
+    db.session.commit()
+
     return redirect(f"/users/{id}")
 
-#VIEWING A POST PAGE
+# VIEWING A POST PAGE
 @app.route("/posts/<postId>")
 def view_post(postId):
     post = Post.query.get(postId)
 
     return render_template("viewpost.html", post=post, postId=postId)
 
-#EDIT POST
+# EDIT POST
 @app.route("/users/posts/<postId>/edit", methods=["GET", "POST"])
 def edit_post(postId):
     post = Post.query.get(postId)
@@ -153,7 +167,7 @@ def edit_post(postId):
 
     return redirect(f"/posts/{postId}")
 
-#DELETE POST
+# DELETE POST
 @app.route("/posts/<postId>/delete", methods=["POST"])
 def delete_post(postId):
     post = Post.query.get(postId)
@@ -162,3 +176,34 @@ def delete_post(postId):
     db.session.commit()
 
     return redirect(f"/users/{post.user_id}")
+
+
+@app.route('/tags')
+def list_tags():
+
+    tags = Tag.query.all()
+
+    return render_template("taglist.html", tags=tags)
+
+
+@app.route('/tags/new', methods=["GET", "POST"])
+def new_tag():
+
+    if request.method == 'GET':
+        return render_template("newtag.html")
+
+    name = request.form['tagName']
+
+    new_tag = Tag(name=name)
+
+    db.session.add(new_tag)
+    db.session.commit()
+
+    return redirect('/tags')
+
+
+@app.route("/tags/<tagId>")
+def view_tag(tagId):
+    tag = Tag.query.get(tagId)
+
+    return render_template("viewtag.html", tag=tag)
