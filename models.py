@@ -4,6 +4,7 @@ db = SQLAlchemy()
 
 DEFAULT_IMAGE_URL = "https://images.freeimages.com/images/large-previews/277/doggy-1382866.jpg"
 
+
 def connect_db(app):
 
     db.app = app
